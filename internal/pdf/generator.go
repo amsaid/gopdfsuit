@@ -4,9 +4,15 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -35,9 +41,28 @@ var scratchBufPool = sync.Pool{
 	},
 }
 
+// AllowedFontDomains restricts the domains from which custom fonts can be downloaded.
+// It defaults to common safe CDN domains but can be overridden by the
+// GOPDFSUIT_ALLOWED_FONT_DOMAINS environment variable (comma-separated list).
+// Set to "*" to allow all domains (not recommended due to SSRF risks).
+var AllowedFontDomains = []string{
+	"fonts.googleapis.com",
+	"fonts.gstatic.com",
+}
+
 // signatureContextAdapter wraps PageManager to implement signature.SignaturePageContext
 type signatureContextAdapter struct {
 	pm *PageManager
+}
+
+func init() {
+	if env := os.Getenv("GOPDFSUIT_ALLOWED_FONT_DOMAINS"); env != "" {
+		parts := strings.Split(env, ",")
+		for i := range parts {
+			parts[i] = strings.TrimSpace(parts[i])
+		}
+		AllowedFontDomains = parts
+	}
 }
 
 func (a *signatureContextAdapter) AllocObjectID() int {
@@ -71,6 +96,85 @@ func (a *signatureContextAdapter) FontMarkChars(name, text string) {
 
 func (a *signatureContextAdapter) EncodeTextForFont(fontName, text string) string {
 	return EncodeTextForCustomFont(fontName, text, a.pm.FontRegistry)
+}
+
+// isAllowedFontDomain checks if the host is in the allowlist to prevent SSRF.
+func isAllowedFontDomain(host string) bool {
+	// If the allowlist contains "*", allow everything (use with caution)
+	if len(AllowedFontDomains) == 1 && AllowedFontDomains[0] == "*" {
+		return true
+	}
+
+	// Strip port if present (e.g., "example.com:80" -> "example.com")
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+
+	host = strings.ToLower(host)
+	for _, allowed := range AllowedFontDomains {
+		allowed = strings.ToLower(allowed)
+		if allowed == "" {
+			continue
+		}
+		// Exact match or subdomain match
+		if host == allowed || strings.HasSuffix(host, "."+allowed) {
+			return true
+		}
+	}
+	return false
+}
+
+// fetchFontURL securely downloads a font file with timeouts, size limits, and SSRF protection.
+func fetchFontURL(fontURL string) ([]byte, error) {
+	// 1. Validate URL Syntax
+	u, err := url.Parse(fontURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid url: %w", err)
+	}
+
+	// 2. Validate Scheme (only http/https)
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported scheme: %s", u.Scheme)
+	}
+
+	// 3. Validate Host (SSRF Protection)
+	if !isAllowedFontDomain(u.Host) {
+		return nil, fmt.Errorf("domain not allowed: %s", u.Host)
+	}
+
+	// 4. Set strict timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(fontURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("non-200 status: %d", resp.StatusCode)
+	}
+
+	// 5. Check Content-Length header (Fail fast)
+	const maxBytes = 20 * 1024 * 1024 // 20 MiB limit
+	if resp.ContentLength > maxBytes {
+		return nil, fmt.Errorf("font file exceeds size limit of 20MiB")
+	}
+
+	// 6. Read body with strict limit (Fail safe)
+	// We read maxBytes + 1 to detect if the stream is actually larger than the limit
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
+
+	if len(data) > maxBytes {
+		return nil, fmt.Errorf("font file exceeds size limit of 20MiB")
+	}
+
+	return data, nil
 }
 
 // GenerateTemplatePDF generates a PDF document with multi-page support and embedded images.
@@ -119,7 +223,16 @@ func GenerateTemplatePDF(template models.PDFTemplate) ([]byte, error) {
 		if fontConfig.Name == "" {
 			continue
 		}
-		if fontConfig.FontData != "" {
+		if fontConfig.FontURL != "" {
+			data, err := fetchFontURL(fontConfig.FontURL)
+			if err != nil {
+				fmt.Printf("Warning: failed to fetch custom font %s from URL: %v\n", fontConfig.Name, err)
+				continue
+			}
+			if err := fontRegistry.RegisterFontFromBase64(fontConfig.Name, base64.StdEncoding.EncodeToString(data)); err != nil {
+				fmt.Printf("Warning: failed to register custom font %s from URL: %v\n", fontConfig.Name, err)
+			}
+		} else if fontConfig.FontData != "" {
 			// Load from base64 data
 			if err := fontRegistry.RegisterFontFromBase64(fontConfig.Name, fontConfig.FontData); err != nil {
 				// Log error but continue

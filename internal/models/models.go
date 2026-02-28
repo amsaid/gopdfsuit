@@ -109,6 +109,7 @@ type CustomFontConfig struct {
 	Name     string `json:"name"`               // Reference name used in props (e.g., "MyFont")
 	FilePath string `json:"filePath,omitempty"` // Path to TTF/OTF file (server-side)
 	FontData string `json:"fontData,omitempty"` // Base64-encoded font data (alternative to FilePath)
+	FontURL  string `json:"fontURL,omitempty"`
 }
 
 // Title represents the header section of the document.
