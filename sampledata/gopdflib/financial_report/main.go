@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+	"github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func getSystemInfo() string {

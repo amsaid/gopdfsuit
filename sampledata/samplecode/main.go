@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	pdf "github.com/chinmay-sawant/gopdfsuit-client"
+	pdf "github.com/amsaid/gopdfsuit-client"
 )
 
 // PatientData model

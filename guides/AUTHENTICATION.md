@@ -180,7 +180,7 @@ All endpoints under `/api/v1/*` are protected when running on Cloud Run:
 In your handlers, you can access authenticated user info:
 
 ```go
-import "github.com/chinmay-sawant/gopdfsuit/internal/middleware"
+import "github.com/amsaid/gopdfsuit/internal/middleware"
 
 func YourHandler(c *gin.Context) {
     // Get user email

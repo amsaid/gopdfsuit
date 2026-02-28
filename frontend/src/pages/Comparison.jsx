@@ -681,7 +681,7 @@ const Comparison = () => {
                 <ArrowRight size={18} />
               </Link>
               <a
-                href="https://github.com/chinmay-sawant/gopdfsuit"
+                href="https://github.com/amsaid/gopdfsuit"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline-glow"
@@ -713,7 +713,7 @@ const Comparison = () => {
               transform: translate3d(0, 0, 0);
             }
           }
-          
+
           @keyframes fadeInScale {
             from {
               opacity: 0;
@@ -724,62 +724,62 @@ const Comparison = () => {
               transform: scale(1);
             }
           }
-          
+
           .animate-fadeInUp {
             animation: fadeInUp 0.8s ease-out forwards;
           }
-          
+
           .animate-fadeInScale {
             animation: fadeInScale 0.6s ease-out forwards;
           }
-          
+
           .stagger-animation {
             opacity: 0;
           }
-          
+
           .stagger-animation.visible {
             opacity: 1;
           }
-          
+
           .comparison-cards-grid {
             display: grid;
             grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
             gap: 1.5rem;
           }
-          
+
           .comparison-cards-grid .glass-card {
             word-wrap: break-word;
             overflow-wrap: break-word;
             word-break: break-word;
             hyphens: auto;
           }
-          
+
           .comparison-cards-grid .feature-value {
             white-space: normal;
             word-wrap: break-word;
             overflow-wrap: break-word;
             word-break: break-word;
           }
-          
+
           @media (max-width: 1600px) {
             .comparison-cards-grid {
               grid-template-columns: repeat(5, 1fr);
               gap: 1rem;
             }
           }
-          
+
           @media (max-width: 1400px) {
             .comparison-cards-grid {
               grid-template-columns: repeat(3, 1fr);
             }
           }
-          
+
           @media (max-width: 900px) {
             .comparison-cards-grid {
               grid-template-columns: repeat(2, 1fr);
             }
           }
-          
+
           @media (max-width: 600px) {
             .comparison-cards-grid {
               grid-template-columns: 1fr;

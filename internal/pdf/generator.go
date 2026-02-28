@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/models"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf/encryption"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf/signature"
+	"github.com/amsaid/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/encryption"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/signature"
 )
 
 // pdfBufferPool reuses bytes.Buffer across PDF generations to reduce GC pressure.

@@ -4,10 +4,10 @@ Version: 1.0.0
 Summary: Python bindings for gopdfsuit - PDF generation, merging, splitting, and more
 Author: Chinmay Sawant
 License: MIT
-Project-URL: Homepage, https://github.com/chinmay-sawant/gopdfsuit
-Project-URL: Documentation, https://github.com/chinmay-sawant/gopdfsuit/tree/main/bindings/python
-Project-URL: Repository, https://github.com/chinmay-sawant/gopdfsuit
-Project-URL: Issues, https://github.com/chinmay-sawant/gopdfsuit/issues
+Project-URL: Homepage, https://github.com/amsaid/gopdfsuit
+Project-URL: Documentation, https://github.com/amsaid/gopdfsuit/tree/main/bindings/python
+Project-URL: Repository, https://github.com/amsaid/gopdfsuit
+Project-URL: Issues, https://github.com/amsaid/gopdfsuit/issues
 Keywords: pdf,generation,merge,split,html,form filling,gopdfsuit
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
@@ -29,7 +29,7 @@ Description-Content-Type: text/markdown
 
 # pypdfsuit
 
-Python bindings for [gopdfsuit](https://github.com/chinmay-sawant/gopdfsuit) - a comprehensive PDF library for generation, merging, splitting, form filling, and HTML to PDF/Image conversion.
+Python bindings for [gopdfsuit](https://github.com/amsaid/gopdfsuit) - a comprehensive PDF library for generation, merging, splitting, form filling, and HTML to PDF/Image conversion.
 
 ## Features
 

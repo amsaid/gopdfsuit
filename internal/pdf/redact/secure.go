@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/models"
 )
 
 func (r *Redactor) applySecureContentRedactions(redactions []models.RedactionRect, queries []models.RedactionTextQuery) ([]byte, bool, []string, error) {

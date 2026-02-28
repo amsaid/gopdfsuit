@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/models"
 )
 
 type ocrWord struct {

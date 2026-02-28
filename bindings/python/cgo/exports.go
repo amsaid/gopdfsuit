@@ -23,8 +23,8 @@ import (
 	"encoding/json"
 	"unsafe"
 
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf/merge"
-	"github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/merge"
+	"github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 // GeneratePDF generates a PDF from a JSON template.

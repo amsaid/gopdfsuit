@@ -2,7 +2,7 @@
 package gopdflib
 
 import (
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf"
 )
 
 // ConvertHTMLToPDF converts HTML content or a URL to a PDF document.

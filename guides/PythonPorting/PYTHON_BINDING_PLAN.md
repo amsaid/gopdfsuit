@@ -127,7 +127,7 @@ import "C"
 import (
     "unsafe"
     "encoding/json"
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 //export GeneratePDF
@@ -584,8 +584,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/chinmay-sawant/gopdfsuit"
-Documentation = "https://github.com/chinmay-sawant/gopdfsuit/tree/main/bindings/python"
+Homepage = "https://github.com/amsaid/gopdfsuit"
+Documentation = "https://github.com/amsaid/gopdfsuit/tree/main/bindings/python"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -753,7 +753,7 @@ If manual CGO is too complex, consider using **gopy** which auto-generates Pytho
 
 ```bash
 go install github.com/go-python/gopy@latest
-gopy build -output=pypdfsuit -vm=python3 github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib
+gopy build -output=pypdfsuit -vm=python3 github.com/amsaid/gopdfsuit/v4/pkg/gopdflib
 ```
 
 **Pros:** Less manual work

@@ -14,12 +14,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/amsaid/gopdfsuit/v4/internal/middleware"
+	"github.com/amsaid/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/form"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/merge"
 	"github.com/bytedance/sonic"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/middleware"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/models"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf/form"
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/pdf/merge"
 	"github.com/gin-gonic/gin"
 )
 

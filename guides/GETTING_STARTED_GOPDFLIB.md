@@ -1,6 +1,6 @@
 # Getting Started with gopdflib
 
-This guide provides a comprehensive overview of how to install and start using the `gopdflib` package from the [gopdfsuit](https://github.com/chinmay-sawant/gopdfsuit) repository.
+This guide provides a comprehensive overview of how to install and start using the `gopdflib` package from the [gopdfsuit](https://github.com/amsaid/gopdfsuit) repository.
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ This section explains how to download and install the `gopdflib` package using t
     Run the following command in your terminal to download the package:
 
     ```bash
-    go get github.com/chinmay-sawant/gopdfsuit/v4@latest
+    go get github.com/amsaid/gopdfsuit/v4@latest
     ```
 
     This command will download the source code and add the dependency to your `go.mod` file.
@@ -35,7 +35,7 @@ To use the library in your Go code, import the `gopdflib` package:
 
 ```go
 import (
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 ```
 
@@ -48,7 +48,7 @@ package main
 
 import (
     "fmt"
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {
@@ -67,7 +67,7 @@ func main() {
 To update to the latest version in the future, simply run:
 
 ```bash
-go get -u github.com/chinmay-sawant/gopdfsuit
+go get -u github.com/amsaid/gopdfsuit
 ```
 
 ---
@@ -97,7 +97,7 @@ import (
     "fmt"
     "os"
 
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {
@@ -180,7 +180,7 @@ import (
     "fmt"
     "os"
 
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {

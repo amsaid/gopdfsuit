@@ -33,7 +33,7 @@ Prerequisites:
 • **GCC/Clang** (for CGO compilation)`,
             code: {
                 bash: `# Clone the repository
-git clone https://github.com/chinmay-sawant/gopdfsuit.git
+git clone https://github.com/amsaid/gopdfsuit.git
 cd gopdfsuit
 
 # Build and install the Python package

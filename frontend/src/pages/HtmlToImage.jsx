@@ -89,7 +89,7 @@ const HtmlToImage = () => {
                   <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" style={{ ...inputStyles, marginBottom: '1rem' }} />
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button onClick={() => setUrl('https://example.com')} className="btn-outline-glow" style={{ fontSize: '0.9rem', padding: '0.75rem 1rem' }}>Example.com</button>
-                    <button onClick={() => setUrl('https://github.com/chinmay-sawant/gopdfsuit')} className="btn-outline-glow" style={{ fontSize: '0.9rem', padding: '0.75rem 1rem' }}>GitHub</button>
+                    <button onClick={() => setUrl('https://github.com/amsaid/gopdfsuit')} className="btn-outline-glow" style={{ fontSize: '0.9rem', padding: '0.75rem 1rem' }}>GitHub</button>
                   </div>
                 </div>
               )}

@@ -13,7 +13,7 @@ This example demonstrates a professional financial report with:
 • Bookmarks for quick navigation
 • Footer with company information
 
-[View Source](https://github.com/chinmay-sawant/gopdfsuit/tree/master/sampledata/financialreport)`,
+[View Source](https://github.com/amsaid/gopdfsuit/tree/master/sampledata/financialreport)`,
       code: {
         json: `{
   "config": {
@@ -106,7 +106,7 @@ This example demonstrates a legal contract with:
 • Numbered sections with styling
 • Signature blocks
 
-[View Source](https://github.com/chinmay-sawant/gopdfsuit/tree/master/sampledata/legalcontract)`,
+[View Source](https://github.com/amsaid/gopdfsuit/tree/master/sampledata/legalcontract)`,
       code: {
         json: `{
   "config": {
@@ -189,7 +189,7 @@ This example demonstrates an interactive form with:
 • Checkboxes for multi-select options
 • Color-coded sections
 
-[View Source](https://github.com/chinmay-sawant/gopdfsuit/tree/master/sampledata/acroform)`,
+[View Source](https://github.com/amsaid/gopdfsuit/tree/master/sampledata/acroform)`,
       code: {
         json: `{
   "config": {

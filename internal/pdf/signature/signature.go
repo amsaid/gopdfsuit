@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chinmay-sawant/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/models"
 )
 
 // PDFSigner handles digital signatures for PDF documents

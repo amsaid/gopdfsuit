@@ -61,7 +61,7 @@ const Home = () => {
       icon: <FileText size={24} />,
       title: 'Native Go Support',
       description: 'Use as a standalone library (gopdflib) or via HTTP API.',
-      link: 'https://github.com/chinmay-sawant/gopdfsuit/tree/master/pkg/gopdflib',
+      link: 'https://github.com/amsaid/gopdfsuit/tree/master/pkg/gopdflib',
       color: 'blue',
       external: true
     },
@@ -69,7 +69,7 @@ const Home = () => {
       icon: <Globe size={24} />,
       title: 'Python Web Client',
       description: 'Lightweight API client for interacting with the GoPdfSuit server.',
-      link: 'https://github.com/chinmay-sawant/gopdfsuit/tree/master/sampledata/python/gopdf',
+      link: 'https://github.com/amsaid/gopdfsuit/tree/master/sampledata/python/gopdf',
       color: 'teal',
       external: true
     },
@@ -77,7 +77,7 @@ const Home = () => {
       icon: <Zap size={24} />,
       title: 'Native Python Support',
       description: 'High-performance CGO bindings for direct PDF generation from Python.',
-      link: 'https://github.com/chinmay-sawant/gopdfsuit/tree/master/bindings/python',
+      link: 'https://github.com/amsaid/gopdfsuit/tree/master/bindings/python',
       color: 'yellow',
       external: true
     },
@@ -264,7 +264,7 @@ const Home = () => {
               <ArrowRight size={18} />
             </Link>
             <a
-              href="https://github.com/chinmay-sawant/gopdfsuit"
+              href="https://github.com/amsaid/gopdfsuit"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-outline-glow"
@@ -500,7 +500,7 @@ const Home = () => {
               <div className="terminal-body">
                 <div style={{ marginBottom: '0.5rem' }}>
                   <span className="terminal-prompt">$ </span>
-                  <span className="terminal-command">git clone https://github.com/chinmay-sawant/gopdfsuit.git</span>
+                  <span className="terminal-command">git clone https://github.com/amsaid/gopdfsuit.git</span>
                 </div>
                 <div style={{ marginBottom: '0.5rem' }}>
                   <span className="terminal-prompt">$ </span>
@@ -830,7 +830,7 @@ const Home = () => {
               flexWrap: 'wrap',
             }}>
               <a
-                href="https://github.com/chinmay-sawant/gopdfsuit"
+                href="https://github.com/amsaid/gopdfsuit"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline-glow"

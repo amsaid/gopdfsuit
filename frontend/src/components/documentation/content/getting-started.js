@@ -18,8 +18,8 @@ export const gettingStartedSection = {
 • HTML to PDF/Image conversion
 
 **Python Support**: 
-• **Native Python Bindings**: Direct CGO integration via [pypdfsuit](https://github.com/chinmay-sawant/gopdfsuit/tree/master/bindings/python).
-• **Python Web Client**: Lightweight REST API client available [here](https://github.com/chinmay-sawant/gopdfsuit/tree/master/sampledata/python/gopdf).
+• **Native Python Bindings**: Direct CGO integration via [pypdfsuit](https://github.com/amsaid/gopdfsuit/tree/master/bindings/python).
+• **Python Web Client**: Lightweight REST API client available [here](https://github.com/amsaid/gopdfsuit/tree/master/sampledata/python/gopdf).
 
 Requirements: Go 1.24+, Google Chrome (for HTML conversion)`,
             features: [
@@ -52,7 +52,7 @@ Web interfaces available:
 • /htmltoimage - HTML to Image Converter`,
             code: {
                 bash: `# Clone & install
-git clone https://github.com/chinmay-sawant/gopdfsuit.git
+git clone https://github.com/amsaid/gopdfsuit.git
 cd gopdfsuit
 go mod download
 
@@ -64,17 +64,17 @@ make run`
             id: 'gopdflib-install',
             title: 'Install gopdflib Package',
             description: 'Use gopdflib as a standalone Go library in your own projects.',
-            content: `The [gopdflib](https://github.com/chinmay-sawant/gopdfsuit/tree/master/pkg/gopdflib) package allows you to generate PDFs programmatically without running the web server.
-View detailed sample data and examples [here](https://github.com/chinmay-sawant/gopdfsuit/tree/master/sampledata/gopdflib).
+            content: `The [gopdflib](https://github.com/amsaid/gopdfsuit/tree/master/pkg/gopdflib) package allows you to generate PDFs programmatically without running the web server.
+View detailed sample data and examples [here](https://github.com/amsaid/gopdfsuit/tree/master/sampledata/gopdflib).
 
 Import the package in your Go code to access all PDF generation features.`,
             code: {
-                bash: `go get github.com/chinmay-sawant/gopdfsuit/v4@latest`,
+                bash: `go get github.com/amsaid/gopdfsuit/v4@latest`,
                 go: `package main
 
 import (
     "fmt"
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {
@@ -102,7 +102,7 @@ import (
     "fmt"
     "os"
 
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {
@@ -149,7 +149,7 @@ import (
     "fmt"
     "os"
     "time"
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {
@@ -256,7 +256,7 @@ func buildFinancialReportTemplate() gopdflib.PDFTemplate {
 
 import (
     "os"
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {
@@ -441,7 +441,7 @@ import (
     "fmt"
     "os"
 
-    "github.com/chinmay-sawant/gopdfsuit/v4/pkg/gopdflib"
+    "github.com/amsaid/gopdfsuit/v4/pkg/gopdflib"
 )
 
 func main() {

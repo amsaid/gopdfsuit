@@ -1,6 +1,6 @@
 # pypdfsuit
 
-Python bindings for [gopdfsuit](https://github.com/chinmay-sawant/gopdfsuit) - a comprehensive PDF library for generation, merging, splitting, form filling, and HTML to PDF/Image conversion.
+Python bindings for [gopdfsuit](https://github.com/amsaid/gopdfsuit) - a comprehensive PDF library for generation, merging, splitting, form filling, and HTML to PDF/Image conversion.
 
 ## Features
 
