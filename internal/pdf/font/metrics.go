@@ -1,10 +1,13 @@
 package font
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
+	"unicode/utf16"
 
 	"strconv"
 
@@ -1028,33 +1031,52 @@ func GenerateToUnicodeCMap(font *RegisteredFont, encryptor ObjectEncryptor) stri
 	return result
 }
 
+// escapeText is a helper function to escape PDF string literals.
+// We likely already have this in the pdf package, but if not, here it is.
+func escapeText(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "(", "\\(")
+	s = strings.ReplaceAll(s, ")", "\\)")
+	return s
+}
+
 // EncodeTextForCustomFont encodes text for use with a custom font (Identity-H encoding)
 // Returns the encoded hex string suitable for use in PDF content stream with Tj operator
 // Characters not in the font are replaced with a space to prevent .notdef references
 // Uses []byte append with inline hex encoding for minimal allocations.
 func EncodeTextForCustomFont(fontName string, text string, registry *CustomFontRegistry) string {
-	font, ok := registry.GetFont(fontName)
-	buf := make([]byte, 0, len(text)*4+2)
-	buf = append(buf, '<')
-	if !ok {
-		// Fallback: encode as-is if font not found
-		for _, char := range text {
-			v := uint16(char)
-			buf = append(buf, hexDigits[v>>12&0xF], hexDigits[v>>8&0xF], hexDigits[v>>4&0xF], hexDigits[v&0xF])
-		}
-	} else {
-		spaceHex := [4]byte{hexDigits[0], hexDigits[0], hexDigits[uint16(' ')>>4&0xF], hexDigits[uint16(' ')&0xF]}
-		for _, char := range text {
-			if _, exists := font.Font.CharToGlyph[char]; exists {
-				v := uint16(char)
-				buf = append(buf, hexDigits[v>>12&0xF], hexDigits[v>>8&0xF], hexDigits[v>>4&0xF], hexDigits[v&0xF])
-			} else {
-				buf = append(buf, spaceHex[0], spaceHex[1], spaceHex[2], spaceHex[3])
-			}
+	// For standard PDF fonts (like Helvetica), we use simple text strings.
+	// This part of the logic remains the same.
+	if !registry.HasFont(fontName) {
+		return fmt.Sprintf("(%s)", escapeText(text))
+	}
+
+	// For ALL custom fonts, we MUST use a robust, unambiguous Unicode encoding.
+	// The PDF standard for this is a UTF-16BE hex string with a Byte Order Mark (BOM).
+	var buf bytes.Buffer
+
+	// 1. Write the BOM (Byte Order Mark) 0xFEFF. This is the magic key.
+	// It explicitly tells the PDF reader: "The following bytes are UTF-16 Big Endian".
+	buf.WriteByte(0xFE)
+	buf.WriteByte(0xFF)
+
+	// 2. Encode the Go string (which is UTF-8) into a sequence of UTF-16BE bytes.
+	for _, r := range text {
+		// Characters in the Basic Multilingual Plane (like all of French and Arabic)
+		// can be encoded as a single uint16.
+		if r <= 0xFFFF {
+			binary.Write(&buf, binary.BigEndian, uint16(r))
+		} else {
+			// Handle characters outside the BMP (like most emojis 👍) by encoding
+			// them as a "surrogate pair", which is standard for UTF-16.
+			r1, r2 := utf16.EncodeRune(r)
+			binary.Write(&buf, binary.BigEndian, uint16(r1))
+			binary.Write(&buf, binary.BigEndian, uint16(r2))
 		}
 	}
-	buf = append(buf, '>')
-	return string(buf)
+
+	// 3. Return the final byte buffer formatted as a PDF hex string literal, e.g., <FEFF004D...>.
+	return fmt.Sprintf("<%X>", buf.Bytes())
 }
 
 // writeHex4 writes a 4-digit uppercase hex value to a strings.Builder using a lookup table.
