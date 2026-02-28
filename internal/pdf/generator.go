@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -41,14 +42,18 @@ var scratchBufPool = sync.Pool{
 	},
 }
 
-// AllowedFontDomains restricts the domains from which custom fonts can be downloaded.
-// It defaults to common safe CDN domains but can be overridden by the
-// GOPDFSUIT_ALLOWED_FONT_DOMAINS environment variable (comma-separated list).
-// Set to "*" to allow all domains (not recommended due to SSRF risks).
-var AllowedFontDomains = []string{
+// defaultAllowedDomains are the safe defaults if no environment variable is set.
+var defaultAllowedDomains = []string{
 	"fonts.googleapis.com",
 	"fonts.gstatic.com",
 }
+
+// allowedFontDomains is the runtime list of allowed hosts.
+var allowedFontDomains []string
+
+// fontClient is a shared HTTP client to ensure TCP connection reuse (Keep-Alive).
+// This prevents file descriptor exhaustion under high load.
+var fontClient *http.Client
 
 // signatureContextAdapter wraps PageManager to implement signature.SignaturePageContext
 type signatureContextAdapter struct {
@@ -56,12 +61,37 @@ type signatureContextAdapter struct {
 }
 
 func init() {
+	// Configure Allowlist
 	if env := os.Getenv("GOPDFSUIT_ALLOWED_FONT_DOMAINS"); env != "" {
 		parts := strings.Split(env, ",")
-		for i := range parts {
-			parts[i] = strings.TrimSpace(parts[i])
+		for _, p := range parts {
+			if trimmed := strings.TrimSpace(p); trimmed != "" {
+				allowedFontDomains = append(allowedFontDomains, strings.ToLower(trimmed))
+			}
 		}
-		AllowedFontDomains = parts
+	} else {
+		allowedFontDomains = defaultAllowedDomains
+	}
+
+	// Configure Shared HTTP Client
+	fontClient = &http.Client{
+		Timeout: 10 * time.Second,
+		// Transport configuration for optimal connection pooling
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 10,
+			IdleConnTimeout:     90 * time.Second,
+		},
+		// CheckRedirect prevents SSRF by validating the target of 3xx redirects
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			if !isAllowedFontDomain(req.URL.Host) {
+				return fmt.Errorf("security violation: redirect to forbidden domain %s", req.URL.Host)
+			}
+			return nil
+		},
 	}
 }
 
@@ -98,25 +128,21 @@ func (a *signatureContextAdapter) EncodeTextForFont(fontName, text string) strin
 	return EncodeTextForCustomFont(fontName, text, a.pm.FontRegistry)
 }
 
-// isAllowedFontDomain checks if the host is in the allowlist to prevent SSRF.
+// isAllowedFontDomain checks if the host is authorized.
 func isAllowedFontDomain(host string) bool {
-	// If the allowlist contains "*", allow everything (use with caution)
-	if len(AllowedFontDomains) == 1 && AllowedFontDomains[0] == "*" {
+	// Handle wildcard (use with extreme caution)
+	if len(allowedFontDomains) == 1 && allowedFontDomains[0] == "*" {
 		return true
 	}
 
-	// Strip port if present (e.g., "example.com:80" -> "example.com")
+	// Strip port if present (e.g., "example.com:443" -> "example.com")
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
 
 	host = strings.ToLower(host)
-	for _, allowed := range AllowedFontDomains {
-		allowed = strings.ToLower(allowed)
-		if allowed == "" {
-			continue
-		}
-		// Exact match or subdomain match
+	for _, allowed := range allowedFontDomains {
+		// Allow exact match or subdomain (e.g., "google.com" allows "fonts.google.com")
 		if host == allowed || strings.HasSuffix(host, "."+allowed) {
 			return true
 		}
@@ -124,54 +150,62 @@ func isAllowedFontDomain(host string) bool {
 	return false
 }
 
-// fetchFontURL securely downloads a font file with timeouts, size limits, and SSRF protection.
+// fetchFontURL securely downloads a font with SSRF protection, size limits, and timeouts.
 func fetchFontURL(fontURL string) ([]byte, error) {
-	// 1. Validate URL Syntax
+	// Parse and Validate URL Scheme
 	u, err := url.Parse(fontURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid url: %w", err)
+		return nil, fmt.Errorf("malformed URL: %w", err)
 	}
-
-	// 2. Validate Scheme (only http/https)
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported scheme: %s", u.Scheme)
 	}
 
-	// 3. Validate Host (SSRF Protection)
+	// Initial Host Validation (SSRF)
 	if !isAllowedFontDomain(u.Host) {
 		return nil, fmt.Errorf("domain not allowed: %s", u.Host)
 	}
 
-	// 4. Set strict timeout
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	resp, err := client.Get(fontURL)
+	// 3. Create Request
+	req, err := http.NewRequest("GET", fontURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "GoPdfSuit/1.0")
+
+	//  Execute Request (using shared client)
+	resp, err := fontClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("download failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// 5. Check Status
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("non-200 status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("server returned status: %d", resp.StatusCode)
 	}
 
-	// 5. Check Content-Length header (Fail fast)
+	//  Security: Check Content-Type
+	// Reject HTML to prevent processing error pages or captive portals as fonts
+	ct := resp.Header.Get("Content-Type")
+	if strings.HasPrefix(strings.ToLower(ct), "text/html") {
+		return nil, fmt.Errorf("invalid content type (HTML): %s", ct)
+	}
+
+	//  Security: Enforce Size Limit
 	const maxBytes = 20 * 1024 * 1024 // 20 MiB limit
 	if resp.ContentLength > maxBytes {
-		return nil, fmt.Errorf("font file exceeds size limit of 20MiB")
+		return nil, fmt.Errorf("font file exceeds 20MiB limit (header)")
 	}
 
-	// 6. Read body with strict limit (Fail safe)
-	// We read maxBytes + 1 to detect if the stream is actually larger than the limit
+	// Use LimitReader to prevent reading infinite streams
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
+		return nil, fmt.Errorf("read error: %w", err)
 	}
 
 	if len(data) > maxBytes {
-		return nil, fmt.Errorf("font file exceeds size limit of 20MiB")
+		return nil, fmt.Errorf("font file exceeds 20MiB limit (body)")
 	}
 
 	return data, nil
