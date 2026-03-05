@@ -473,7 +473,7 @@ func GenerateTemplatePDF(template models.PDFTemplate) ([]byte, error) {
 	}
 
 	shouldEmbed := template.Config.EmbedFonts == nil || *template.Config.EmbedFonts
-
+	log.Println("shouldEmbed:", shouldEmbed)
 	// Calculate Object IDs for standard fonts dynamically
 	// Only assign IDs for fonts that are used
 	fontObjectIDs := make(map[string]int)     // Font Name -> Font Dictionary Object ID
@@ -504,6 +504,10 @@ func GenerateTemplatePDF(template models.PDFTemplate) ([]byte, error) {
 		"Courier-Bold":          "courier",
 		"Courier-Oblique":       "courier",
 		"Courier-BoldOblique":   "courier",
+		"Arial":                 "arial",
+		"Arial-Bold":            "arial-bold",
+		"Arial-Oblique":         "arial-italic",
+		"Arial-BoldOblique":     "arial-bolditalic",
 		"Symbol":                "symbol",
 		"ZapfDingbats":          "zapfdingbats",
 	}

@@ -136,33 +136,41 @@ func (r *CustomFontRegistry) MarkCharsUsed(name string, text string) {
 
 // GenerateSubsets generates subset fonts for all registered fonts with used characters
 func (r *CustomFontRegistry) GenerateSubsets() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for name, font := range r.fonts {
-		if len(font.UsedChars) == 0 {
-			continue
-		}
-
-		// Collect used glyphs
-		usedGlyphs := make([]uint16, 0, len(font.UsedChars))
-		for char := range font.UsedChars {
-			if glyphID, ok := font.Font.CharToGlyph[char]; ok {
-				usedGlyphs = append(usedGlyphs, glyphID)
-			}
-		}
-
-		// Generate subset
-		subsetData, oldToNew, err := SubsetTTF(font.Font, usedGlyphs)
-		if err != nil {
-			return fmt.Errorf("failed to subset font %s: %w", name, err)
-		}
-
-		font.SubsetData = subsetData
-		font.OldToNewGlyph = oldToNew
-	}
-
+	// --- MODIFICATION START ---
+	// Return immediately to disable subsetting.
+	// This forces the PDF generator to embed the FULL font file (RawData)
+	// instead of trying to generate a potentially corrupted subset.
 	return nil
+	// --- MODIFICATION END ---
+	/*
+		r.mu.Lock()
+		defer r.mu.Unlock()
+
+		for name, font := range r.fonts {
+			if len(font.UsedChars) == 0 {
+				continue
+			}
+
+			// Collect used glyphs
+			usedGlyphs := make([]uint16, 0, len(font.UsedChars))
+			for char := range font.UsedChars {
+				if glyphID, ok := font.Font.CharToGlyph[char]; ok {
+					usedGlyphs = append(usedGlyphs, glyphID)
+				}
+			}
+
+			// Generate subset
+			subsetData, oldToNew, err := SubsetTTF(font.Font, usedGlyphs)
+			if err != nil {
+				return fmt.Errorf("failed to subset font %s: %w", name, err)
+			}
+
+			font.SubsetData = subsetData
+			font.OldToNewGlyph = oldToNew
+		}
+
+		return nil
+	*/
 }
 
 // GetAllFonts returns all registered fonts
@@ -412,6 +420,7 @@ func (r *CustomFontRegistry) ResolveFontName(props models.Props) string {
 	case "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
 		"Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic",
 		"Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique",
+		"Arial", "Arial-Bold", "Arial-Oblique", "Arial-BoldOblique",
 		"Symbol", "ZapfDingbats":
 		return props.FontName
 	}
