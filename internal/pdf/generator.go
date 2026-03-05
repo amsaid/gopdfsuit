@@ -281,6 +281,10 @@ func GenerateTemplatePDF(template models.PDFTemplate) ([]byte, error) {
 				fmt.Printf("Warning: failed to load custom font %s from file: %v\n", fontConfig.Name, err)
 			}
 		}
+
+		if fontConfig.ForceFullEmbed {
+			fontRegistry.SetForceFullEmbed(fontConfig.Name, true)
+		}
 	}
 
 	// Initialize page manager with Arlington compatibility flag and per-generation font registry

@@ -20,19 +20,20 @@ type CustomFontRegistry struct {
 
 // RegisteredFont represents a custom font loaded and ready for PDF embedding
 type RegisteredFont struct {
-	Name          string            // User-friendly reference name (used in templates)
-	Font          *TTFFont          // Parsed font data
-	UsedChars     map[rune]bool     // Characters used in the current document
-	SubsetData    []byte            // Subset font data (generated when needed)
-	OldToNewGlyph map[uint16]uint16 // Glyph ID mapping after subsetting
-	ObjectID      int               // PDF object ID for font dictionary
-	DescriptorID  int               // PDF object ID for font descriptor
-	ToUnicodeID   int               // PDF object ID for ToUnicode CMap
-	CIDFontID     int               // PDF object ID for CIDFont
-	CIDToGIDMapID int               // PDF object ID for CIDToGIDMap
-	FontFileID    int               // PDF object ID for embedded font file
-	WidthsID      int               // PDF object ID for widths array
-	CachedRef     string            // Cached PDF reference string (e.g., "/CF1")
+	Name           string            // User-friendly reference name (used in templates)
+	Font           *TTFFont          // Parsed font data
+	UsedChars      map[rune]bool     // Characters used in the current document
+	SubsetData     []byte            // Subset font data (generated when needed)
+	OldToNewGlyph  map[uint16]uint16 // Glyph ID mapping after subsetting
+	ObjectID       int               // PDF object ID for font dictionary
+	DescriptorID   int               // PDF object ID for font descriptor
+	ToUnicodeID    int               // PDF object ID for ToUnicode CMap
+	CIDFontID      int               // PDF object ID for CIDFont
+	CIDToGIDMapID  int               // PDF object ID for CIDToGIDMap
+	FontFileID     int               // PDF object ID for embedded font file
+	WidthsID       int               // PDF object ID for widths array
+	CachedRef      string            // Cached PDF reference string (e.g., "/CF1")
+	ForceFullEmbed bool              // Force full font embedding (disable subsetting)
 }
 
 // Global font registry instance
@@ -43,6 +44,14 @@ var globalFontRegistry = &CustomFontRegistry{
 // GetFontRegistry returns the global font registry
 func GetFontRegistry() *CustomFontRegistry {
 	return globalFontRegistry
+}
+
+func (r *CustomFontRegistry) SetForceFullEmbed(name string, force bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if font, ok := r.fonts[name]; ok {
+		font.ForceFullEmbed = force
+	}
 }
 
 // NewFontRegistry creates a new font registry (for isolated use cases)
@@ -136,41 +145,39 @@ func (r *CustomFontRegistry) MarkCharsUsed(name string, text string) {
 
 // GenerateSubsets generates subset fonts for all registered fonts with used characters
 func (r *CustomFontRegistry) GenerateSubsets() error {
-	// --- MODIFICATION START ---
-	// Return immediately to disable subsetting.
-	// This forces the PDF generator to embed the FULL font file (RawData)
-	// instead of trying to generate a potentially corrupted subset.
-	return nil
-	// --- MODIFICATION END ---
-	/*
-		r.mu.Lock()
-		defer r.mu.Unlock()
 
-		for name, font := range r.fonts {
-			if len(font.UsedChars) == 0 {
-				continue
-			}
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-			// Collect used glyphs
-			usedGlyphs := make([]uint16, 0, len(font.UsedChars))
-			for char := range font.UsedChars {
-				if glyphID, ok := font.Font.CharToGlyph[char]; ok {
-					usedGlyphs = append(usedGlyphs, glyphID)
-				}
-			}
-
-			// Generate subset
-			subsetData, oldToNew, err := SubsetTTF(font.Font, usedGlyphs)
-			if err != nil {
-				return fmt.Errorf("failed to subset font %s: %w", name, err)
-			}
-
-			font.SubsetData = subsetData
-			font.OldToNewGlyph = oldToNew
+	for name, font := range r.fonts {
+		if font.ForceFullEmbed {
+			continue
 		}
 
-		return nil
-	*/
+		if len(font.UsedChars) == 0 {
+			continue
+		}
+
+		// Collect used glyphs
+		usedGlyphs := make([]uint16, 0, len(font.UsedChars))
+		for char := range font.UsedChars {
+			if glyphID, ok := font.Font.CharToGlyph[char]; ok {
+				usedGlyphs = append(usedGlyphs, glyphID)
+			}
+		}
+
+		// Generate subset
+		subsetData, oldToNew, err := SubsetTTF(font.Font, usedGlyphs)
+		if err != nil {
+			return fmt.Errorf("failed to subset font %s: %w", name, err)
+		}
+
+		font.SubsetData = subsetData
+		font.OldToNewGlyph = oldToNew
+	}
+
+	return nil
+
 }
 
 // GetAllFonts returns all registered fonts

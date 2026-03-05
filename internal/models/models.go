@@ -106,10 +106,11 @@ type SignatureConfig struct {
 
 // CustomFontConfig specifies a custom font to embed in the PDF
 type CustomFontConfig struct {
-	Name     string `json:"name"`               // Reference name used in props (e.g., "MyFont")
-	FilePath string `json:"filePath,omitempty"` // Path to TTF/OTF file (server-side)
-	FontData string `json:"fontData,omitempty"` // Base64-encoded font data (alternative to FilePath)
-	FontURL  string `json:"fontURL,omitempty"`
+	Name           string `json:"name"`                     // Reference name used in props (e.g., "MyFont")
+	FilePath       string `json:"filePath,omitempty"`       // Path to TTF/OTF file (server-side)
+	FontData       string `json:"fontData,omitempty"`       // Base64-encoded font data (alternative to FilePath)
+	FontURL        string `json:"fontURL,omitempty"`        // URL to the font file (alternative to FilePath and FontData)
+	ForceFullEmbed bool   `json:"forceFullEmbed,omitempty"` // Force full font embedding (disable subsetting)
 }
 
 // Title represents the header section of the document.
