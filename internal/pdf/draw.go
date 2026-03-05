@@ -603,7 +603,6 @@ func drawTitleTable(contentStream *bytes.Buffer, table *models.TitleTable, pageM
 					contentStream.WriteString("q\n")
 					contentStream.WriteString("0.5 w\n")
 					underlineY := textY - 2
-					textWidth := float64(len(cell.Text) * cellProps.FontSize / 2)
 					var underlineBuf []byte
 					underlineBuf = appendFmtNum(underlineBuf, textX)
 					underlineBuf = append(underlineBuf, ' ')
@@ -1182,7 +1181,6 @@ func drawTable(table models.Table, imageKeyPrefix string, pageManager *PageManag
 						contentStream.WriteString("q\n")
 						contentStream.WriteString("0.5 w\n")
 						underlineY := textY - 2
-						textWidth := float64(len(cell.Text) * cellProps.FontSize / 2)
 						underlineBuf := appendFmtNum(scratchBuf[:0], textX)
 						underlineBuf = append(underlineBuf, ' ')
 						underlineBuf = appendFmtNum(underlineBuf, underlineY)
@@ -1422,7 +1420,8 @@ func drawImage(image models.Image, pageManager *PageManager, borderConfig, water
 
 	imageHeight := image.Height
 	if imageHeight == 0 {
-		imageHeight = 200 // Default height
+		height := 200 // Default height
+		imageHeight = float64(height)
 	}
 
 	// Add some spacing before image

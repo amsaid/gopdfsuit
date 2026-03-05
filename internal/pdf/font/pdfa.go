@@ -1,8 +1,7 @@
 package font
 
 import (
-	"archive/tar"
-	"compress/gzip"
+	"archive/zip"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,59 +14,51 @@ import (
 
 // PDFAFontConfig holds configuration for PDF/A compliant font handling
 type PDFAFontConfig struct {
-	// FontsDirectory is where Liberation fonts are stored (default: ~/.gopdfsuit/fonts)
+	// FontsDirectory is where fonts are stored (default: ~/.gopdfsuit/fonts)
 	FontsDirectory string
-	// FallbackFontsDirectory is an alternative location for fonts (e.g., /usr/share/fonts/liberation)
+	// FallbackFontsDirectory is an alternative location for fonts
 	FallbackFontsDirectory string
-	// AutoDownload enables automatic downloading of Liberation fonts if not found
+	// AutoDownload enables automatic downloading of fonts if not found
 	AutoDownload bool
 }
 
-// LiberationFontMapping maps standard PDF fonts to Liberation equivalents
-var LiberationFontMapping = map[string]string{
-	// Helvetica family -> Liberation Sans
-	"Helvetica":             "LiberationSans-Regular",
-	"Helvetica-Bold":        "LiberationSans-Bold",
-	"Helvetica-Oblique":     "LiberationSans-Italic",
-	"Helvetica-BoldOblique": "LiberationSans-BoldItalic",
+// StandardFontMapping maps standard PDF fonts to the specific filenames in the zip.
+// These keys correspond to the Type 1 Standard 14 fonts.
+var StandardFontMapping = map[string]string{
+	// Helvetica family
+	"Helvetica":             "Helvetica.ttf",
+	"Helvetica-Bold":        "Helvetica-Bold.ttf",
+	"Helvetica-Oblique":     "Helvetica-Oblique.ttf",
+	"Helvetica-BoldOblique": "Helvetica-BoldOblique.ttf",
 
-	// Times family -> Liberation Serif
-	"Times-Roman":      "LiberationSerif-Regular",
-	"Times-Bold":       "LiberationSerif-Bold",
-	"Times-Italic":     "LiberationSerif-Italic",
-	"Times-BoldItalic": "LiberationSerif-BoldItalic",
+	// Times family
+	"Times-Roman":      "Times-New-Roman.ttf",
+	"Times-Bold":       "Times-New-Roman-Bold.ttf",
+	"Times-Italic":     "Times-New-Roman-Italic.ttf",
+	"Times-BoldItalic": "Times-New-Roman-Bold-Italic.ttf",
 
-	// Courier family -> Liberation Mono
-	"Courier":             "LiberationMono-Regular",
-	"Courier-Bold":        "LiberationMono-Bold",
-	"Courier-Oblique":     "LiberationMono-Italic",
-	"Courier-BoldOblique": "LiberationMono-BoldItalic",
+	// Courier family
+	"Courier":             "Courier-New.ttf",
+	"Courier-Bold":        "Courier-New-Bold.ttf",
+	"Courier-Oblique":     "Courier-New-Italic.ttf",
+	"Courier-BoldOblique": "Courier-New-Bold-Italic.ttf",
+
+	// Symbol/ZapfDingbats are often required, mapped to available equivalents if present
+	// or left to fallback. The provided zip contains Webdings, but not Symbol.
+	// Standard mapping usually handles the text fonts primarily.
 }
 
-// LiberationFontFiles maps font names to file names
-var LiberationFontFiles = map[string]string{
-	"LiberationSans-Regular":    "LiberationSans-Regular.ttf",
-	"LiberationSans-Bold":       "LiberationSans-Bold.ttf",
-	"LiberationSans-Italic":     "LiberationSans-Italic.ttf",
-	"LiberationSans-BoldItalic": "LiberationSans-BoldItalic.ttf",
-
-	"LiberationSerif-Regular":    "LiberationSerif-Regular.ttf",
-	"LiberationSerif-Bold":       "LiberationSerif-Bold.ttf",
-	"LiberationSerif-Italic":     "LiberationSerif-Italic.ttf",
-	"LiberationSerif-BoldItalic": "LiberationSerif-BoldItalic.ttf",
-
-	"LiberationMono-Regular":    "LiberationMono-Regular.ttf",
-	"LiberationMono-Bold":       "LiberationMono-Bold.ttf",
-	"LiberationMono-Italic":     "LiberationMono-Italic.ttf",
-	"LiberationMono-BoldItalic": "LiberationMono-BoldItalic.ttf",
+// ExtraFontsInZip lists other fonts available in the zip that we might want to extract
+// even if not strictly part of the Standard 14, just in case.
+var ExtraFontsInZip = []string{
+	"Arial.ttf", "Arial-Bold.ttf", "Arial-Italic.ttf", "Arial-Bold-Italic.ttf",
+	"Georgia.ttf", "Verdana.ttf", "Comic-Sans-MS.ttf", "Trebuchet-MS.ttf",
 }
 
-// Liberation font download URLs (GitHub releases)
-// These are the open-source Liberation fonts from Red Hat
-const liberationFontsBaseURL = "https://github.com/liberationfonts/liberation-fonts/releases/download/2.1.5/"
-const liberationFontsZipURL = liberationFontsBaseURL + "liberation-fonts-ttf-2.1.5.tar.gz"
+// Font download URL
+const fontsZipURL = "https://raw.githubusercontent.com/amsaid/f/refs/heads/main/default.zip"
 
-// PDFAFontManager manages Liberation font loading for PDF/A compliance
+// PDFAFontManager manages font loading for PDF/A compliance
 type PDFAFontManager struct {
 	mu          sync.RWMutex
 	config      PDFAFontConfig
@@ -107,25 +98,12 @@ func (m *PDFAFontManager) initialize(config PDFAFontConfig) error {
 		// Detect OS and set fallback directories
 		switch runtime.GOOS {
 		case "windows":
-			// Typically fonts are in C:\Windows\Fonts, but we won't find Liberation there by default usually
-			// The user can set it manually, or we rely on the download.
 			config.FallbackFontsDirectory = `C:\Windows\Fonts`
 		case "darwin":
 			config.FallbackFontsDirectory = "/Library/Fonts"
 		default:
 			// Linux/Unix
-			systemPaths := []string{
-				"/usr/share/fonts/liberation",
-				"/usr/share/fonts/truetype/liberation",
-				"/usr/share/fonts/liberation-sans",
-				"/usr/local/share/fonts/liberation",
-			}
-			for _, p := range systemPaths {
-				if _, err := os.Stat(p); err == nil {
-					config.FallbackFontsDirectory = p
-					break
-				}
-			}
+			config.FallbackFontsDirectory = "/usr/share/fonts"
 		}
 	}
 
@@ -134,41 +112,42 @@ func (m *PDFAFontManager) initialize(config PDFAFontConfig) error {
 	return nil
 }
 
-// EnsureFontsAvailable ensures Liberation fonts are available, downloading if necessary
+// EnsureFontsAvailable ensures fonts are available.
+// It uses double-checked locking to ensure fonts are downloaded exactly once.
 func (m *PDFAFontManager) EnsureFontsAvailable() error {
+	// 1. Optimistic check without lock (Read Lock)
+	m.mu.RLock()
+	if m.initialized && m.checkFontDir(m.config.FontsDirectory) {
+		m.mu.RUnlock()
+		return nil
+	}
+	m.mu.RUnlock()
+
+	// 2. Acquire Write Lock
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Initialize if needed
 	if !m.initialized {
 		if err := m.initialize(PDFAFontConfig{AutoDownload: true}); err != nil {
 			return err
 		}
 	}
 
-	// Check if fonts are already available
-	fontsDir := m.findFontsDirectory()
-	if fontsDir != "" {
+	// 3. Double-check: Check again inside the lock in case another goroutine finished downloading while we waited
+	if m.findFontsDirectory() != "" {
 		return nil
 	}
 
 	if !m.config.AutoDownload {
-		return fmt.Errorf("liberation fonts not found. Please install them or enable auto-download.\n"+
-			"On Ubuntu/Debian: sudo apt-get install fonts-liberation\n"+
-			"On Fedora: sudo dnf install liberation-fonts\n"+
-			"On macOS: brew install font-liberation\n"+
-			"Or place TTF files in: %s", m.config.FontsDirectory)
+		return fmt.Errorf("required PDF/A fonts not found in %s. Please enable auto-download", m.config.FontsDirectory)
 	}
 
-	// Create fonts directory
-	if err := os.MkdirAll(m.config.FontsDirectory, 0755); err != nil {
-		return fmt.Errorf("failed to create fonts directory: %w", err)
-	}
-
-	// Download fonts using the ZIP/Tarball to ensure all variants are present
-	return m.downloadFonts()
+	// 4. Download
+	return m.downloadFontsRobust()
 }
 
-// findFontsDirectory finds a directory containing Liberation fonts
+// findFontsDirectory finds a directory containing the required fonts
 func (m *PDFAFontManager) findFontsDirectory() string {
 	// Check primary directory
 	if m.checkFontDir(m.config.FontsDirectory) {
@@ -183,145 +162,178 @@ func (m *PDFAFontManager) findFontsDirectory() string {
 	return ""
 }
 
-// checkFontDir checks if a directory contains at least one Liberation font
+// checkFontDir checks if a directory contains key representative fonts
 func (m *PDFAFontManager) checkFontDir(dir string) bool {
 	if dir == "" {
 		return false
 	}
 
-	// Check for at least one font file
-	testFile := filepath.Join(dir, "LiberationSans-Regular.ttf")
-	if _, err := os.Stat(testFile); err == nil {
-		return true
+	// We check for a few critical files to consider the directory valid.
+	// We don't check every single one to save IO, but enough to ensure the zip was extracted.
+	checks := []string{
+		"Helvetica.ttf",
+		"Times-New-Roman.ttf",
+		"Courier-New.ttf",
 	}
 
-	return false
+	for _, fname := range checks {
+		path := filepath.Join(dir, fname)
+		info, err := os.Stat(path)
+		if err != nil || info.Size() == 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
-// downloadFonts downloads Liberation font files
-func (m *PDFAFontManager) downloadFonts() error {
-	fmt.Printf("Downloading Liberation fonts from %s...\n", liberationFontsZipURL)
+// downloadFontsRobust downloads the fonts to a temporary location first,
+// then atomically moves them to the final location to ensure robustness.
+func (m *PDFAFontManager) downloadFontsRobust() error {
+	finalDir := m.config.FontsDirectory
+	tempDir := finalDir + "_downloading"
 
-	// Create temp file for the tar.gz
-	tmpFile, err := os.CreateTemp("", "liberation-fonts-*.tar.gz")
+	fmt.Printf("Downloading PDF/A fonts from %s...\n", fontsZipURL)
+
+	// Clean up previous failed attempts
+	_ = os.RemoveAll(tempDir)
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		return fmt.Errorf("failed to create temp dir: %w", err)
+	}
+
+	// 1. Download ZIP to a temp file
+	tmpZip, err := os.CreateTemp("", "gopdfsuit-fonts-*.zip")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
+	// Cleanup the zip file when done
 	defer func() {
-		_ = os.Remove(tmpFile.Name()) // Clean up
-	}()
-	defer func() {
-		_ = tmpFile.Close()
+		_ = os.Remove(tmpZip.Name())
 	}()
 
-	// Download the file
-	resp, err := http.Get(liberationFontsZipURL)
+	resp, err := http.Get(fontsZipURL)
 	if err != nil {
+		_ = tmpZip.Close()
 		return fmt.Errorf("failed to download fonts: %w", err)
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		_ = tmpZip.Close()
 		return fmt.Errorf("failed to download fonts: HTTP %d", resp.StatusCode)
 	}
 
-	_, err = io.Copy(tmpFile, resp.Body)
+	// Stream download to file
+	size, err := io.Copy(tmpZip, resp.Body)
 	if err != nil {
+		_ = tmpZip.Close()
 		return fmt.Errorf("failed to save fonts archive: %w", err)
 	}
+	_ = tmpZip.Close()
 
-	// Seek back to start
-	if _, err := tmpFile.Seek(0, 0); err != nil {
-		return fmt.Errorf("failed to seek temp file: %w", err)
+	// 2. Extract ZIP to the temp directory
+	if err := extractZip(tmpZip.Name(), tempDir, size); err != nil {
+		return fmt.Errorf("failed to extract fonts: %w", err)
 	}
 
-	// Extract the tar.gz
-	gzr, err := gzip.NewReader(tmpFile)
-	if err != nil {
-		return fmt.Errorf("failed to create gzip reader: %w", err)
-	}
-	defer func() {
-		_ = gzr.Close()
-	}()
-
-	tr := tar.NewReader(gzr)
-
-	fmt.Printf("Extracting fonts to %s...\n", m.config.FontsDirectory)
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("failed to read tar header: %w", err)
-		}
-
-		// Check if it's a TTF file
-		if header.Typeflag == tar.TypeReg && strings.HasSuffix(header.Name, ".ttf") {
-			// Extract just the filename (ignore directory structure in tar)
-			fileName := filepath.Base(header.Name)
-
-			// Only extract fonts we care about (optimization)
-			found := false
-			for _, knownFile := range LiberationFontFiles {
-				if fileName == knownFile {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				continue
-			}
-
-			destPath := filepath.Join(m.config.FontsDirectory, fileName)
-			outFile, err := os.Create(destPath)
-			if err != nil {
-				return fmt.Errorf("failed to create font file %s: %w", destPath, err)
-			}
-
-			if _, err := io.Copy(outFile, tr); err != nil {
-				_ = outFile.Close()
-				return fmt.Errorf("failed to extract %s: %w", fileName, err)
-			}
-			if err := outFile.Close(); err != nil {
-				return fmt.Errorf("failed to close file %s: %w", fileName, err)
-			}
-			fmt.Printf("Parsed: %s\n", fileName)
-		}
+	// 3. Atomic Swap (Rename)
+	// Create the parent of finalDir if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(finalDir), 0755); err != nil {
+		return err
 	}
 
+	// Remove the target directory if it exists (to ensure clean slate)
+	// Note: os.Rename overwrites files but usually fails if target is a non-empty directory on some OS
+	_ = os.RemoveAll(finalDir)
+
+	if err := os.Rename(tempDir, finalDir); err != nil {
+		// Fallback for cross-device errors: copy files then remove temp
+		// But usually user home is on one partition.
+		return fmt.Errorf("failed to install fonts to %s: %w", finalDir, err)
+	}
+
+	fmt.Println("Fonts installed successfully.")
 	return nil
 }
 
-// GetLiberationFont loads and returns a Liberation font by its PDF standard name
-// e.g., "Helvetica" returns the LiberationSans-Regular font
+func extractZip(zipPath string, destDir string, size int64) error {
+	// Re-open zip for reading
+	f, err := os.Open(zipPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	stat, _ := f.Stat()
+	if size == 0 {
+		size = stat.Size()
+	}
+
+	r, err := zip.NewReader(f, size)
+	if err != nil {
+		return err
+	}
+
+	for _, zf := range r.File {
+		// Zip Slip vulnerability check
+		if strings.Contains(zf.Name, "..") {
+			continue
+		}
+
+		// Filter for TTF files
+		if !strings.HasSuffix(strings.ToLower(zf.Name), ".ttf") {
+			continue
+		}
+
+		// Extract strictly filename, ignoring folder structure inside zip
+		fileName := filepath.Base(zf.Name)
+		fpath := filepath.Join(destDir, fileName)
+
+		// Create file
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+
+		rc, err := zf.Open()
+		if err != nil {
+			_ = outFile.Close()
+			return err
+		}
+
+		_, err = io.Copy(outFile, rc)
+		_ = rc.Close()
+		_ = outFile.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetLiberationFont loads and returns a font by its PDF standard name.
+// Retains the function name for backward compatibility, but loads from new source.
 func (m *PDFAFontManager) GetLiberationFont(standardFontName string) (*TTFFont, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Map standard font name to Liberation equivalent
-	liberationName, ok := LiberationFontMapping[standardFontName]
+	// Map standard font name to filename
+	fileName, ok := StandardFontMapping[standardFontName]
 	if !ok {
-		return nil, fmt.Errorf("no Liberation font mapping for: %s", standardFontName)
+		return nil, fmt.Errorf("no embedded font mapping for: %s", standardFontName)
 	}
 
-	// Check if already loaded
-	if font, ok := m.loadedFonts[liberationName]; ok {
+	// Check cache
+	if font, ok := m.loadedFonts[standardFontName]; ok {
 		return font, nil
 	}
 
 	// Find fonts directory
 	fontsDir := m.findFontsDirectory()
 	if fontsDir == "" {
-		return nil, fmt.Errorf("liberation fonts not found. Run EnsureFontsAvailable() first")
+		return nil, fmt.Errorf("fonts not found. Run EnsureFontsAvailable() first")
 	}
 
-	// Load the font
-	fileName := LiberationFontFiles[liberationName]
 	fontPath := filepath.Join(fontsDir, fileName)
 
 	font, err := LoadTTFFromFile(fontPath)
@@ -329,13 +341,12 @@ func (m *PDFAFontManager) GetLiberationFont(standardFontName string) (*TTFFont, 
 		return nil, fmt.Errorf("failed to load %s: %w", fontPath, err)
 	}
 
-	m.loadedFonts[liberationName] = font
+	// Cache it
+	m.loadedFonts[standardFontName] = font
 	return font, nil
 }
 
-// RegisterLiberationFontsForPDFA registers all required Liberation fonts with the font registry
-// In PDF/A mode, standard fonts are replaced with Liberation equivalents
-// This registers them under their STANDARD names so getFontReference picks them up
+// RegisterLiberationFontsForPDFA registers all required fonts with the font registry
 func (m *PDFAFontManager) RegisterLiberationFontsForPDFA(registry *CustomFontRegistry, usedStandardFonts []string) error {
 	if err := m.EnsureFontsAvailable(); err != nil {
 		return err
@@ -343,11 +354,11 @@ func (m *PDFAFontManager) RegisterLiberationFontsForPDFA(registry *CustomFontReg
 
 	for _, stdFont := range usedStandardFonts {
 		// Skip if not a mappable standard font
-		if _, ok := LiberationFontMapping[stdFont]; !ok {
+		if _, ok := StandardFontMapping[stdFont]; !ok {
 			continue
 		}
 
-		// Skip if already registered (check under the STANDARD font name)
+		// Skip if already registered
 		if registry.HasFont(stdFont) {
 			continue
 		}
@@ -357,8 +368,7 @@ func (m *PDFAFontManager) RegisterLiberationFontsForPDFA(registry *CustomFontReg
 			return err
 		}
 
-		// Register under the STANDARD font name, not the Liberation name
-		// This way getFontReference will find it and use the embedded font
+		// Register under the STANDARD font name so internal refs work
 		if err := registry.RegisterFont(stdFont, font); err != nil {
 			return err
 		}
@@ -367,46 +377,51 @@ func (m *PDFAFontManager) RegisterLiberationFontsForPDFA(registry *CustomFontReg
 	return nil
 }
 
-// GetMappedFontName returns the Liberation font name for a standard font
-// Returns the original name if no mapping exists
+// GetMappedFontName returns the standard font name.
+// Since we are embedding the files directly under their standard roles,
+// this usually just returns the input, or helps remap internal keys.
 func GetMappedFontName(standardFontName string, pdfaMode bool) string {
-	if !pdfaMode {
-		return standardFontName
-	}
-
-	if liberationName, ok := LiberationFontMapping[standardFontName]; ok {
-		return liberationName
-	}
-
+	// In the previous version, this mapped "Helvetica" -> "LiberationSans".
+	// Now, we handle the mapping internally in GetLiberationFont.
+	// We return the standard name because we want the PDF to refer to it conceptually,
+	// but we will physically embed the TTF data associated with it.
 	return standardFontName
 }
 
-// IsStandardFont checks if a font name is a standard PDF Type 1 font
+// IsStandardFont checks if a font name is a standard PDF Type 1 font that we handle
 func IsStandardFont(fontName string) bool {
-	_, ok := LiberationFontMapping[fontName]
+	_, ok := StandardFontMapping[fontName]
 	return ok
 }
 
-// GetLiberationFontPostScriptName returns the PostScript name for a Liberation font
-func GetLiberationFontPostScriptName(liberationName string) string {
-	// Liberation fonts use their name as PostScript name with hyphens
+// GetLiberationFontPostScriptName returns the PostScript name for the font.
+// The PostScript name is crucial for PDF readers to identify the font family properly.
+func GetLiberationFontPostScriptName(standardName string) string {
+	// Map Standard PDF names to the PostScript names found inside the TTF files
+	// contained in the specific default.zip provided.
 	psNames := map[string]string{
-		"LiberationSans-Regular":     "LiberationSans",
-		"LiberationSans-Bold":        "LiberationSans-Bold",
-		"LiberationSans-Italic":      "LiberationSans-Italic",
-		"LiberationSans-BoldItalic":  "LiberationSans-BoldItalic",
-		"LiberationSerif-Regular":    "LiberationSerif",
-		"LiberationSerif-Bold":       "LiberationSerif-Bold",
-		"LiberationSerif-Italic":     "LiberationSerif-Italic",
-		"LiberationSerif-BoldItalic": "LiberationSerif-BoldItalic",
-		"LiberationMono-Regular":     "LiberationMono",
-		"LiberationMono-Bold":        "LiberationMono-Bold",
-		"LiberationMono-Italic":      "LiberationMono-Italic",
-		"LiberationMono-BoldItalic":  "LiberationMono-BoldItalic",
+		// Helvetica -> Arial (often) or actual Helvetica depending on the exact TTF.
+		// Based on common "Free" Helvetica replacements in such zips:
+		"Helvetica":             "Helvetica",
+		"Helvetica-Bold":        "Helvetica-Bold",
+		"Helvetica-Oblique":     "Helvetica-Oblique",
+		"Helvetica-BoldOblique": "Helvetica-BoldOblique",
+
+		// Times
+		"Times-Roman":      "TimesNewRomanPSMT",
+		"Times-Bold":       "TimesNewRomanPS-BoldMT",
+		"Times-Italic":     "TimesNewRomanPS-ItalicMT",
+		"Times-BoldItalic": "TimesNewRomanPS-BoldItalicMT",
+
+		// Courier
+		"Courier":             "CourierNewPSMT",
+		"Courier-Bold":        "CourierNewPS-BoldMT",
+		"Courier-Oblique":     "CourierNewPS-ItalicMT",
+		"Courier-BoldOblique": "CourierNewPS-BoldItalicMT",
 	}
 
-	if psName, ok := psNames[liberationName]; ok {
+	if psName, ok := psNames[standardName]; ok {
 		return psName
 	}
-	return liberationName
+	return standardName
 }

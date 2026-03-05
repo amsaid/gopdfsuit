@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/amsaid/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/rtl"
 )
 
 // PDFSigner handles digital signatures for PDF documents
@@ -271,6 +272,7 @@ func (s *PDFSigner) createSignatureAppearance(pageManager SignaturePageContext, 
 
 	// Helper to format text based on font type
 	formatText := func(text string) string {
+		text = rtl.ProcessRTLText(text)
 		if useHexEncoding {
 			// For Liberation fonts, use hex encoding
 			return pageManager.EncodeTextForFont("Helvetica", text)

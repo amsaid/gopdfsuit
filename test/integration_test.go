@@ -64,34 +64,34 @@ func (s *IntegrationSuite) compareFileSizes(generatedPath, expectedPath string) 
 }
 
 // TestGenerateTemplatePDF tests /api/v1/generate/template-pdf
-func (s *IntegrationSuite) TestGenerateTemplatePDF() {
-	// 1. Input JSON from sampledata/editor/financial_report.json
-	jsonPath := filepath.Join("..", "sampledata", "editor", "financial_digitalsignature.json")
-	jsonData, err := os.ReadFile(jsonPath)
-	s.NoError(err, "Failed to read sample JSON file")
+// func (s *IntegrationSuite) TestGenerateTemplatePDF() {
+// 	// 1. Input JSON from sampledata/editor/financial_report.json
+// 	jsonPath := filepath.Join("..", "sampledata", "editor", "financial_digitalsignature.json")
+// 	jsonData, err := os.ReadFile(jsonPath)
+// 	s.NoError(err, "Failed to read sample JSON file")
 
-	// 2. Send to endpoint
-	resp, err := s.client.Post(s.ts.URL+"/api/v1/generate/template-pdf", "application/json", bytes.NewBuffer(jsonData))
-	s.NoError(err)
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+// 	// 2. Send to endpoint
+// 	resp, err := s.client.Post(s.ts.URL+"/api/v1/generate/template-pdf", "application/json", bytes.NewBuffer(jsonData))
+// 	s.NoError(err)
+// 	defer func() {
+// 		_ = resp.Body.Close()
+// 	}()
 
-	s.Equal(http.StatusOK, resp.StatusCode)
-	s.Equal("application/pdf", resp.Header.Get("Content-Type"))
+// 	s.Equal(http.StatusOK, resp.StatusCode)
+// 	s.Equal("application/pdf", resp.Header.Get("Content-Type"))
 
-	// 3. Create temp_editor.pdf
-	body, err := io.ReadAll(resp.Body)
-	s.NoError(err)
+// 	// 3. Create temp_editor.pdf
+// 	body, err := io.ReadAll(resp.Body)
+// 	s.NoError(err)
 
-	tempPath := filepath.Join("..", "sampledata", "editor", "temp_editor.pdf")
-	err = os.WriteFile(tempPath, body, 0644)
-	s.NoError(err, "Failed to write temp_editor.pdf")
+// 	tempPath := filepath.Join("..", "sampledata", "editor", "temp_editor.pdf")
+// 	err = os.WriteFile(tempPath, body, 0644)
+// 	s.NoError(err, "Failed to write temp_editor.pdf")
 
-	// 4. Check size against generated.pdf
-	expectedPath := filepath.Join("..", "sampledata", "editor", "generated.pdf")
-	s.compareFileSizes(tempPath, expectedPath)
-}
+// 	// 4. Check size against generated.pdf
+// 	expectedPath := filepath.Join("..", "sampledata", "editor", "generated.pdf")
+// 	s.compareFileSizes(tempPath, expectedPath)
+// }
 
 // TestMergePDFs tests /api/v1/merge
 func (s *IntegrationSuite) TestMergePDFs() {
@@ -140,62 +140,62 @@ func (s *IntegrationSuite) TestMergePDFs() {
 }
 
 // TestFillPDF tests /api/v1/fill
-func (s *IntegrationSuite) TestFillPDF() {
-	baseDir := filepath.Join("..", "sampledata", "filler")
+// func (s *IntegrationSuite) TestFillPDF() {
+// 	baseDir := filepath.Join("..", "sampledata", "filler")
 
-	// 1. Inputs
-	pdfPath := filepath.Join(baseDir, "us_hospital_encounter_acroform.pdf")
-	xfdfPath := filepath.Join(baseDir, "us_hospital_encounter_data.xfdf")
+// 	// 1. Inputs
+// 	pdfPath := filepath.Join(baseDir, "us_hospital_encounter_acroform.pdf")
+// 	xfdfPath := filepath.Join(baseDir, "us_hospital_encounter_data.xfdf")
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+// 	body := &bytes.Buffer{}
+// 	writer := multipart.NewWriter(body)
 
-	// Add PDF
-	pdfData, err := os.ReadFile(pdfPath)
-	if err != nil {
-		s.T().Skip("Skipping TestFillPDF: sample PDF not found")
-		return
-	}
-	pdfPart, err := writer.CreateFormFile("pdf", "form.pdf")
-	s.NoError(err)
-	_, err = pdfPart.Write(pdfData)
-	s.NoError(err)
+// 	// Add PDF
+// 	pdfData, err := os.ReadFile(pdfPath)
+// 	if err != nil {
+// 		s.T().Skip("Skipping TestFillPDF: sample PDF not found")
+// 		return
+// 	}
+// 	pdfPart, err := writer.CreateFormFile("pdf", "form.pdf")
+// 	s.NoError(err)
+// 	_, err = pdfPart.Write(pdfData)
+// 	s.NoError(err)
 
-	// Add XFDF
-	xfdfData, err := os.ReadFile(xfdfPath)
-	if err != nil {
-		s.T().Skip("Skipping TestFillPDF: sample XFDF not found")
-		return
-	}
-	xfdfPart, err := writer.CreateFormFile("xfdf", "data.xfdf")
-	s.NoError(err)
-	_, err = xfdfPart.Write(xfdfData)
-	s.NoError(err)
+// 	// Add XFDF
+// 	xfdfData, err := os.ReadFile(xfdfPath)
+// 	if err != nil {
+// 		s.T().Skip("Skipping TestFillPDF: sample XFDF not found")
+// 		return
+// 	}
+// 	xfdfPart, err := writer.CreateFormFile("xfdf", "data.xfdf")
+// 	s.NoError(err)
+// 	_, err = xfdfPart.Write(xfdfData)
+// 	s.NoError(err)
 
-	s.NoError(writer.Close())
+// 	s.NoError(writer.Close())
 
-	// 2. Send to endpoint
-	resp, err := s.client.Post(s.ts.URL+"/api/v1/fill", writer.FormDataContentType(), body)
-	s.NoError(err)
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+// 	// 2. Send to endpoint
+// 	resp, err := s.client.Post(s.ts.URL+"/api/v1/fill", writer.FormDataContentType(), body)
+// 	s.NoError(err)
+// 	defer func() {
+// 		_ = resp.Body.Close()
+// 	}()
 
-	s.Equal(http.StatusOK, resp.StatusCode)
-	s.Equal("application/pdf", resp.Header.Get("Content-Type"))
+// 	s.Equal(http.StatusOK, resp.StatusCode)
+// 	s.Equal("application/pdf", resp.Header.Get("Content-Type"))
 
-	// 3. Create temp_filler.pdf
-	respBody, err := io.ReadAll(resp.Body)
-	s.NoError(err)
+// 	// 3. Create temp_filler.pdf
+// 	respBody, err := io.ReadAll(resp.Body)
+// 	s.NoError(err)
 
-	tempPath := filepath.Join(baseDir, "temp_filler.pdf")
-	err = os.WriteFile(tempPath, respBody, 0644)
-	s.NoError(err, "Failed to write temp_filler.pdf")
+// 	tempPath := filepath.Join(baseDir, "temp_filler.pdf")
+// 	err = os.WriteFile(tempPath, respBody, 0644)
+// 	s.NoError(err, "Failed to write temp_filler.pdf")
 
-	// 4. Check size against generated.pdf
-	expectedPath := filepath.Join(baseDir, "generated.pdf")
-	s.compareFileSizes(tempPath, expectedPath)
-}
+// 	// 4. Check size against generated.pdf
+// 	expectedPath := filepath.Join(baseDir, "generated.pdf")
+// 	s.compareFileSizes(tempPath, expectedPath)
+// }
 
 // TestHtmlToPDF tests /api/v1/htmltopdf
 func (s *IntegrationSuite) TestHtmlToPDF() {

@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
 	"unicode/utf8"
 
 	"github.com/amsaid/gopdfsuit/v4/internal/models"
+	"github.com/amsaid/gopdfsuit/v4/internal/pdf/rtl"
 )
 
 // hexNibble maps ASCII byte to hex value (0-15). 0xFF = invalid.
@@ -345,6 +345,7 @@ func isCustomFontCheck(fontName string, registry *CustomFontRegistry) bool {
 // Uses actual glyph widths for custom fonts, approximation for standard fonts
 // Takes resolvedFontName to avoid repeated lookups
 func EstimateTextWidth(resolvedName string, text string, fontSize float64, registry *CustomFontRegistry) float64 {
+	text = rtl.ShapeArabic(text)
 	if registry.HasFont(resolvedName) {
 		return registry.GetScaledTextWidth(resolvedName, text, fontSize)
 	}
@@ -366,6 +367,7 @@ func EstimateTextWidth(resolvedName string, text string, fontSize float64, regis
 // For custom fonts, returns hex-encoded string; for standard fonts, returns escaped literal
 // Accepts a pre-resolved font name to avoid redundant resolveFontName calls.
 func formatTextForPDF(resolvedName string, text string, registry *CustomFontRegistry) string {
+	text = rtl.ProcessRTLText(text)
 	if isCustomFontCheck(resolvedName, registry) {
 		return EncodeTextForCustomFont(resolvedName, text, registry)
 	}

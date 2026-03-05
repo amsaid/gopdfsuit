@@ -1,7 +1,6 @@
-# Build from the root directory using: docker build -f dockerfolder/Dockerfile -t gopdfsuit .
-
 # --- Build stage ---
-FROM golang:1.24.0-alpine AS builder
+# Explicitly use docker.io to ensure Podman support
+FROM docker.io/golang:1.25.0-alpine AS builder
 
 WORKDIR /app
 
@@ -15,25 +14,28 @@ RUN go mod download
 COPY . .
 
 # Build the binary
-RUN go build -o gopdfsuit ./cmd/gopdfsuit
+# CGO_ENABLED=0 ensures a static Go binary, reducing dependency issues
+# -ldflags="-s -w" strips debug information to reduce size
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o gopdfsuit ./cmd/gopdfsuit
 
 
 # --- Final stage ---
-# Use Debian 12 for a native (non-snap) Chromium package
-FROM debian:12-slim
+# Explicitly use docker.io
+FROM docker.io/debian:12-slim
 
 ARG VERSION=latest
 LABEL version=$VERSION
 
-# Set DEBIAN_FRONTEND to noninteractive to prevent apt-get from prompting for input
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies for headless Chromium, install Chromium itself, and clean up.
-# We need fonts and other libraries for it to render pages correctly.
+# 1. Install dependencies + dumb-init
+# dumb-init is CRITICAL for Podman/Docker when running browsers.
+# Chromium creates many child processes; without dumb-init (PID 1),
+# zombie processes will pile up and eventually crash the container.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    dumb-init \
     chromium \
-    # Add common dependencies for headless browsers to prevent rendering issues
     libxss1 \
     libasound2 \
     libnspr4 \
@@ -56,27 +58,30 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app/
+# 2. Create a non-root user
+# Podman prefers rootless execution. Running Chromium as root is widely
+# discouraged and often fails without unsafe flags.
+RUN groupadd -r appuser && useradd -r -g appuser -G audio,video appuser \
+    && mkdir -p /app \
+    && chown -R appuser:appuser /app
 
-# Copy the binary from builder stage
-COPY --from=builder /app/gopdfsuit .
+WORKDIR /app
 
-# Copy the web folder
-COPY --from=builder /app/docs ./docs
+# 3. Copy files with ownership set to the non-root user
+# Using --chown here prevents doubling the layer size (copying as root then chowning)
+COPY --from=builder --chown=appuser:appuser /app/gopdfsuit .
+COPY --from=builder --chown=appuser:appuser /app/docs ./docs
+COPY --from=builder --chown=appuser:appuser /app/LICENSE .
+COPY --from=builder --chown=appuser:appuser /app/README.md .
+COPY --from=builder --chown=appuser:appuser /app/temp_multiplepage.json .
 
-# Copy LICENSE
-COPY --from=builder /app/LICENSE .
+# 4. Switch to non-root user
+USER appuser
 
-# Copy README.md
-COPY --from=builder /app/README.md .
-
-# Copy temp_multiplepage.json
-COPY --from=builder /app/temp_multiplepage.json .
-
-# Expose port if the app serves on a port (assuming 8080, adjust if needed)
 EXPOSE 8080
 
-# Run the binary.
-# NOTE: Your Go application likely needs to launch Chromium with the '--no-sandbox' flag
-# when running as the root user inside a Docker container.
+# 5. Use dumb-init as the entrypoint
+# This ensures signals (like SIGTERM) are passed correctly to your app
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
 CMD ["./gopdfsuit"]
