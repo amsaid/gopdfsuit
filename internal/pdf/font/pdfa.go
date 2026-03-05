@@ -43,6 +43,12 @@ var StandardFontMapping = map[string]string{
 	"Courier-Oblique":     "Courier-New-Italic.ttf",
 	"Courier-BoldOblique": "Courier-New-Bold-Italic.ttf",
 
+	// Arial family
+	"Arial":            "Arial.ttf",
+	"Arial-Bold":       "Arial-Bold.ttf",
+	"Arial-Italic":     "Arial-Italic.ttf",
+	"Arial-BoldItalic": "Arial-Bold-Italic.ttf",
+
 	// Symbol/ZapfDingbats are often required, mapped to available equivalents if present
 	// or left to fallback. The provided zip contains Webdings, but not Symbol.
 	// Standard mapping usually handles the text fonts primarily.
