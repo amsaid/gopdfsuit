@@ -144,7 +144,7 @@ func (m *PDFAFontManager) EnsureFontsAvailable() error {
 	}
 
 	// 4. Download
-	return m.downloadFontsRobust()
+	return m.downloadFonts()
 }
 
 // findFontsDirectory finds a directory containing the required fonts
@@ -187,9 +187,9 @@ func (m *PDFAFontManager) checkFontDir(dir string) bool {
 	return true
 }
 
-// downloadFontsRobust downloads the fonts to a temporary location first,
+// downloadFonts downloads the fonts to a temporary location first,
 // then atomically moves them to the final location to ensure robustness.
-func (m *PDFAFontManager) downloadFontsRobust() error {
+func (m *PDFAFontManager) downloadFonts() error {
 	finalDir := m.config.FontsDirectory
 	tempDir := finalDir + "_downloading"
 

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -241,6 +242,7 @@ func GenerateTemplatePDF(template models.PDFTemplate) ([]byte, error) {
 	if template.Config.PDFACompliant {
 		usedStandardFonts := collectAllStandardFontsInTemplate(template)
 		usedFontsList := make([]string, 0, len(usedStandardFonts))
+		log.Printf("PDF/A compliant: collecting used standard fonts: %v\n", usedFontsList)
 		for fontName := range usedStandardFonts {
 			usedFontsList = append(usedFontsList, fontName)
 		}
